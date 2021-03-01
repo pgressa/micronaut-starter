@@ -1,0 +1,21 @@
+@import io.micronaut.starter.options.BuildTool
+@import io.micronaut.starter.options.JdkVersion
+
+@args (
+BuildTool buildTool,
+boolean isGraal,
+)
+
+          @if (buildTool.equals(BuildTool.MAVEN)) {
+            @if (isGraal){
+          ./mvnw package -Dpackaging=native-image --no-transfer-progress
+            } else {
+          ./mvnw package -Dpackaging=jar --no-transfer-progress
+            }
+          } else {
+            @if (isGraal) {
+          ./gradlew nativeImage --no-daemon
+            } else {
+          ./gradlew shadowJar --no-daemon
+            }
+          }

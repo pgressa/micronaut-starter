@@ -16,6 +16,7 @@
 package io.micronaut.starter.feature.github.workflows;
 
 import io.micronaut.starter.application.ApplicationType;
+import io.micronaut.starter.application.generator.GeneratorContext;
 import io.micronaut.starter.feature.Category;
 import io.micronaut.starter.feature.Feature;
 
@@ -48,4 +49,6 @@ public abstract class GitHubWorkflowFeature implements Feature {
     public List<Secret> getSecrets() {
         return Collections.emptyList();
     }
+
+    public abstract String getWorkflowFileName(GeneratorContext generatorContext);
 }

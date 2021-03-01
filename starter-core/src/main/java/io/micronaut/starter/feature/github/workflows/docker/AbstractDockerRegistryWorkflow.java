@@ -52,6 +52,4 @@ public abstract class AbstractDockerRegistryWorkflow extends GitHubWorkflowFeatu
             generatorContext.getBuildProperties().put("jib.docker.tag", "${project.version}");
         }
     }
-
-    public abstract String getWorkflowFileName(GeneratorContext generatorContext);
 }

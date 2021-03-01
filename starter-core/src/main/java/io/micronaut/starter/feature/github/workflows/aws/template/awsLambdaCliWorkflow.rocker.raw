@@ -1,0 +1,81 @@
+@import io.micronaut.starter.application.Project
+@import io.micronaut.starter.options.BuildTool
+@import io.micronaut.starter.options.JdkVersion
+@import io.micronaut.starter.feature.github.workflows.templates.buildApplication
+@import io.micronaut.starter.feature.github.workflows.templates.graalvmSetup
+@import io.micronaut.starter.feature.github.workflows.templates.javaSetup
+@import static io.micronaut.starter.feature.github.workflows.aws.AbstractAwsLambdaWorkflow.AWS_DEFAULT_REGION
+@import static io.micronaut.starter.feature.github.workflows.aws.AbstractAwsLambdaWorkflow.AWS_DEFAULT_FUNCTION_MEMORY
+@import static io.micronaut.starter.feature.github.workflows.aws.AbstractAwsLambdaWorkflow.AWS_DEFAULT_FUNCTION_TIMEOUT
+@import static io.micronaut.starter.feature.github.workflows.aws.AwsUtils.runtimeVersion
+@import static io.micronaut.starter.feature.github.workflows.aws.AwsUtils.runnablePath
+
+@args (
+Project project,
+BuildTool buildTool,
+JdkVersion jdkVersion,
+boolean isGraal,
+)
+
+@if (isGraal) {
+name: AWS Lambda GraalVM CE CD
+} else {
+name: AWS Lambda Java CD
+}
+on: [push, pull_request]
+
+env:
+  AWS_REGION: @AWS_DEFAULT_REGION
+  FUNCTION_NAME: @project.getName()
+  FUNCTION_TIMEOUT: @AWS_DEFAULT_FUNCTION_TIMEOUT
+  FUNCTION_MEMORY: @AWS_DEFAULT_FUNCTION_MEMORY
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+@if(isGraal){
+@graalvmSetup.template(buildTool, jdkVersion)
+} else {
+@javaSetup.template(buildTool, jdkVersion)
+}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Build Application
+        run: |
+@buildApplication.template(buildTool, isGraal)
+      - name: Deploy to AWS Lambda
+        env:
+            AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          @if (isGraal){
+          chmod 755 bootstrap @runnablePath(project, buildTool, isGraal)
+          zip -j function.zip bootstrap @runnablePath(project, buildTool, isGraal)
+          ZIP_PATH=function.zip
+          } else {
+          ZIP_PATH=$(ls @buildTool.getShadeJarDirectoryPattern(project))
+          }
+
+          if aws lambda get-function --function-name "${FUNCTION_NAME}" > /dev/null 2>&1; then
+            aws lambda update-function-code \
+              --function-name "${FUNCTION_NAME}" \
+              --zip-file fileb://${ZIP_PATH}
+          else
+            aws lambda create-function \
+              --function-name "${FUNCTION_NAME}" \
+              --zip-file fileb://${ZIP_PATH} \
+              --timeout ${FUNCTION_TIMEOUT} \
+              --memory-size  ${FUNCTION_MEMORY} \
+              --role $AWS_ROLE_ARN \
+              @if (isGraal){
+              --runtime provided
+              }else{
+              --runtime @runtimeVersion(jdkVersion) \
+              --handler io.micronaut.function.aws.proxy.MicronautLambdaHandler
+              }
+          fi
