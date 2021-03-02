@@ -96,14 +96,14 @@ class AwsLambdaCliWorkflowSpec extends WorkflowSpec {
         noExceptionThrown()
         with(invokeFunction(project.getName())){
             statusCode() == 200
-            jsonSlurper.parseText(payload().asUtf8String()) == null
+            ((String)jsonSlurper.parseText(payload().asUtf8String())["body"]).contains("isbn")
         }
 
         cleanup:
         //cleanupGitHubRepository(project)
 
         where:
-        buildTool << [BuildTool.MAVEN, BuildTool.GRADLE]
+        buildTool << [BuildTool.GRADLE, BuildTool.MAVEN]
     }
 
     InvokeResponse invokeFunction(String functionName){

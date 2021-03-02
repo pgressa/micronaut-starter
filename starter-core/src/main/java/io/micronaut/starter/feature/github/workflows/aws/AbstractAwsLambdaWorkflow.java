@@ -46,7 +46,7 @@ public abstract class AbstractAwsLambdaWorkflow extends GitHubWorkflowFeature {
 
     public static final String AWS_DEFAULT_REGION = "eu-central-1";
     public static final String AWS_DEFAULT_FUNCTION_TIMEOUT = "30";
-    public static final String AWS_DEFAULT_FUNCTION_MEMORY = "256";
+    public static final String AWS_DEFAULT_FUNCTION_MEMORY = "512";
 
     private final boolean isGraalVM;
     private final AwsLambda awsLambda;
