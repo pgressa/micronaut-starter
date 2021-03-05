@@ -73,7 +73,10 @@ class AwsLambdaCliWorkflowSpec extends WorkflowSpec {
 
         then:
         noExceptionThrown()
-        !invokeFunction(project.getName()).functionError()
+        with(invokeFunction(project.getName())){
+            statusCode() == 200
+            ((String)jsonSlurper.parseText(payload().asUtf8String())["body"]).contains("isbn")
+        }
 
         cleanup:
         //cleanupGitHubRepository(project)
